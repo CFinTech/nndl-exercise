@@ -1,3 +1,8 @@
 chap4_simple neural network/data
 chap4_simple neural network/loss.jpg
 chap5_CNN/mnist
+__pycache__/
+*.pyc
+
+
+

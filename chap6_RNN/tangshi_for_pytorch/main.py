@@ -9,6 +9,7 @@ import rnn
 start_token = 'G'
 end_token = 'E'
 batch_size = 64
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def process_poems1(file_name):
@@ -23,6 +24,8 @@ def process_poems1(file_name):
     with open(file_name, "r", encoding='utf-8', ) as f:
         for line in f.readlines():
             try:
+                if ":" not in line:
+                    continue
                 title, content = line.strip().split(':')
                 # content = content.replace(' ', '').replace('，','').replace('。','')
                 content = content.replace(' ', '')
@@ -34,7 +37,7 @@ def process_poems1(file_name):
                 content = start_token + content + end_token
                 poems.append(content)
             except ValueError as e:
-                print("error")
+                # print("error")
                 pass
     # 按诗的字数排序
     poems = sorted(poems, key=lambda line: len(line))
@@ -131,6 +134,8 @@ def run_training():
     word_embedding = rnn.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 100)
     rnn_model = rnn.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 100, lstm_hidden_dim=128)
 
+    # move model to GPU
+    rnn_model = rnn_model.to(device)
     # optimizer = optim.Adam(rnn_model.parameters(), lr= 0.001)
     optimizer=optim.RMSprop(rnn_model.parameters(), lr=0.01)
 
@@ -148,23 +153,25 @@ def run_training():
             for index in range(BATCH_SIZE):
                 x = np.array(batch_x[index], dtype = np.int64)
                 y = np.array(batch_y[index], dtype = np.int64)
-                x = Variable(torch.from_numpy(np.expand_dims(x,axis=1)))
-                y = Variable(torch.from_numpy(y ))
+                x = Variable(torch.from_numpy(np.expand_dims(x, axis=1))).to(device)
+                y = Variable(torch.from_numpy(y)).to(device)
+
                 pre = rnn_model(x)
                 loss += loss_fun(pre , y)
-                if index == 0:
+                if index == 0 and batch % 100 == 0:
                     _, pre = torch.max(pre, dim=1)
                     print('prediction', pre.data.tolist()) # the following  three line can print the output and the prediction
                     print('b_y       ', y.data.tolist())   # And you need to take a screenshot and then past is to your homework paper.
                     print('*' * 30)
             loss  = loss  / BATCH_SIZE
-            print("epoch  ",epoch,'batch number',batch,"loss is: ", loss.data.tolist())
+            if batch % 100 == 0:
+                print("epoch  ",epoch,'batch number',batch,"loss is: ", loss.data.tolist())
             optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm(rnn_model.parameters(), 1)
             optimizer.step()
 
-            if batch % 20 ==0:
+            if batch % 200 ==0:
                 torch.save(rnn_model.state_dict(), './poem_generator_rnn')
                 print("finish  save model")
 
@@ -198,7 +205,8 @@ def gen_poem(begin_word):
     rnn_model = rnn.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,
                                    embedding_dim=100, lstm_hidden_dim=128)
 
-    rnn_model.load_state_dict(torch.load('./poem_generator_rnn'))
+    rnn_model = rnn_model.to(device)
+    rnn_model.load_state_dict(torch.load('./poem_generator_rnn', map_location=device))
 
     # 指定开始的字
 
@@ -206,7 +214,7 @@ def gen_poem(begin_word):
     word = begin_word
     while word != end_token:
         input = np.array([word_int_map[w] for w in poem],dtype= np.int64)
-        input = Variable(torch.from_numpy(input))
+        input = Variable(torch.from_numpy(input)).to(device)
         output = rnn_model(input, is_test=True)
         word = to_word(output.data.tolist()[-1], vocabularies)
         poem += word
@@ -226,8 +234,5 @@ pretty_print_poem(gen_poem("红"))
 pretty_print_poem(gen_poem("山"))
 pretty_print_poem(gen_poem("夜"))
 pretty_print_poem(gen_poem("湖"))
-pretty_print_poem(gen_poem("湖"))
-pretty_print_poem(gen_poem("湖"))
 pretty_print_poem(gen_poem("君"))
-
 

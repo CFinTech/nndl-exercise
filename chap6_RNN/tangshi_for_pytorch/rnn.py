@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 import numpy as np
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def weights_init(m):
     classname = m.__class__.__name__  #   obtain the class name
     if classname.find('Linear') != -1:
@@ -36,7 +38,7 @@ class RNN_model(nn.Module):
     def __init__(self, batch_sz ,vocab_len ,word_embedding,embedding_dim, lstm_hidden_dim):
         super(RNN_model,self).__init__()
 
-        self.word_embedding_lookup = word_embedding
+        self.word_embedding_lookup = word_embedding.to(device)
         self.batch_size = batch_sz
         self.vocab_length = vocab_len
         self.word_embedding_dim = embedding_dim
@@ -50,9 +52,9 @@ class RNN_model(nn.Module):
             hidden_size=lstm_hidden_dim,
             num_layers=2,
             batch_first=True
-        )
+        ).to(device)
         ##########################################
-        self.fc = nn.Linear(lstm_hidden_dim, vocab_len )
+        self.fc = nn.Linear(lstm_hidden_dim, vocab_len).to(device)
         self.apply(weights_init) # call the weights initial function.
 
         self.softmax = nn.LogSoftmax() # the activation function.
@@ -64,6 +66,7 @@ class RNN_model(nn.Module):
         # here you need to put the "batch_input"  input the self.lstm which is defined before.
         # the hidden output should be named as output, the initial hidden state and cell state set to zero.
         # ???
+        batch_input = batch_input.to(device)
         B = batch_input.size(0)
         h0 = torch.zeros(2, B, self.lstm_dim, device=batch_input.device)
         c0 = torch.zeros(2, B, self.lstm_dim, device=batch_input.device)
