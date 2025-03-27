@@ -3,6 +3,7 @@ import collections
 import torch
 from torch.autograd import Variable
 import torch.optim as optim
+import matplotlib.pyplot as plt
 
 import rnn
 
@@ -123,59 +124,84 @@ def generate_batch(batch_size, poems_vec, word_to_int):
 
 
 def run_training():
+    # Track losses
+    losses = []
+    
     # 处理数据集
-    # poems_vector, word_to_int, vocabularies = process_poems2('./tangshi.txt')
     poems_vector, word_to_int, vocabularies = process_poems1('./poems.txt')
-    # 生成batch
-    print("finish  loadding data")
+    print("finish loading data")
     BATCH_SIZE = 100
 
     torch.manual_seed(5)
-    word_embedding = rnn.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 100)
-    rnn_model = rnn.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 100, lstm_hidden_dim=128)
+    word_embedding = rnn.word_embedding(vocab_length=len(word_to_int) + 1, embedding_dim=100)
+    rnn_model = rnn.RNN_model(batch_sz=BATCH_SIZE, vocab_len=len(word_to_int) + 1, 
+                            word_embedding=word_embedding, embedding_dim=100, lstm_hidden_dim=128)
 
-    # move model to GPU
+    # Move model to GPU and verify
     rnn_model = rnn_model.to(device)
-    # optimizer = optim.Adam(rnn_model.parameters(), lr= 0.001)
-    optimizer=optim.RMSprop(rnn_model.parameters(), lr=0.01)
-
+    print(f"Model is on: {next(rnn_model.parameters()).device}")
+    
+    optimizer = optim.RMSprop(rnn_model.parameters(), lr=0.01)
     loss_fun = torch.nn.NLLLoss()
-    # rnn_model.load_state_dict(torch.load('./poem_generator_rnn'))  # if you have already trained your model you can load it by this line.
 
     for epoch in range(30):
         batches_inputs, batches_outputs = generate_batch(BATCH_SIZE, poems_vector, word_to_int)
         n_chunk = len(batches_inputs)
+        
         for batch in range(n_chunk):
             batch_x = batches_inputs[batch]
-            batch_y = batches_outputs[batch] # (batch , time_step)
+            batch_y = batches_outputs[batch]
 
             loss = 0
             for index in range(BATCH_SIZE):
-                x = np.array(batch_x[index], dtype = np.int64)
-                y = np.array(batch_y[index], dtype = np.int64)
+                x = np.array(batch_x[index], dtype=np.int64)
+                y = np.array(batch_y[index], dtype=np.int64)
                 x = Variable(torch.from_numpy(np.expand_dims(x, axis=1))).to(device)
                 y = Variable(torch.from_numpy(y)).to(device)
-
+                
+                # Verify data is on GPU
+                if index == 0 and batch == 0 and epoch == 0:
+                    print(f"Input data is on: {x.device}")
+                    print(f"Target data is on: {y.device}")
+                
                 pre = rnn_model(x)
-                loss += loss_fun(pre , y)
+                loss += loss_fun(pre, y)
+                
                 if index == 0 and batch % 100 == 0:
                     _, pre = torch.max(pre, dim=1)
-                    print('prediction', pre.data.tolist()) # the following  three line can print the output and the prediction
-                    print('b_y       ', y.data.tolist())   # And you need to take a screenshot and then past is to your homework paper.
+                    print('prediction', pre.data.tolist())
+                    print('b_y       ', y.data.tolist())
                     print('*' * 30)
-            loss  = loss  / BATCH_SIZE
+            
+            loss = loss / BATCH_SIZE
+            
+            # Store loss every 100 batches
             if batch % 100 == 0:
-                print("epoch  ",epoch,'batch number',batch,"loss is: ", loss.data.tolist())
+                loss_value = loss.item()
+                losses.append(loss_value)
+                print("epoch", epoch, 'batch number', batch, "loss is: ", loss_value)
+            
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm(rnn_model.parameters(), 1)
+            torch.nn.utils.clip_grad_norm_(rnn_model.parameters(), 1)
             optimizer.step()
 
-            if batch % 200 ==0:
+            if batch % 200 == 0:
                 torch.save(rnn_model.state_dict(), './poem_generator_rnn')
-                print("finish  save model")
-
-
+                print("finish save model")
+    
+    # Plot loss curve
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(len(losses)), losses, 'b-', label='Training Loss')
+    plt.xlabel('Every 100 Batches')
+    plt.ylabel('Loss')
+    plt.title('Training Loss Curve')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('training_loss.png')
+    plt.show()
+    
+    return losses
 
 def to_word(predict, vocabs):  # 预测的结果转化成汉字
     sample = np.argmax(predict)
@@ -224,15 +250,14 @@ def gen_poem(begin_word):
             break
     return poem
 
+# losses = run_training()
 
-
-run_training()  # 如果不是训练阶段 ，请注销这一行 。 网络训练时间很长。
-
-
+# Generate poems
 pretty_print_poem(gen_poem("日"))
-pretty_print_poem(gen_poem("红"))
-pretty_print_poem(gen_poem("山"))
-pretty_print_poem(gen_poem("夜"))
-pretty_print_poem(gen_poem("湖"))
-pretty_print_poem(gen_poem("君"))
+# pretty_print_poem(gen_poem("红"))
+# pretty_print_poem(gen_poem("山"))
+# pretty_print_poem(gen_poem("夜"))
+# pretty_print_poem(gen_poem("湖"))
+# pretty_print_poem(gen_poem("君"))
+
 
