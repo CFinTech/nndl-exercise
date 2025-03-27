@@ -1,8 +1,9 @@
 chap4_simple neural network/data
 chap4_simple neural network/loss.jpg
 chap5_CNN/mnist
-__pycache__/
+chap6_RNN/tangshi_for_pytorch/__pycache__/
 *.pyc
+chap6_RNN/tangshi_for_pytorch/*.png
 
 
 

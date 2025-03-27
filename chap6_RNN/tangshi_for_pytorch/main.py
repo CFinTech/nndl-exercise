@@ -187,7 +187,7 @@ def run_training():
             optimizer.step()
 
             if batch % 200 == 0:
-                torch.save(rnn_model.state_dict(), './poem_generator_rnn')
+                # torch.save(rnn_model.state_dict(), './poem_generator_rnn')
                 print("finish save model")
     
     # Plot loss curve
@@ -220,8 +220,9 @@ def pretty_print_poem(poem):  # 令打印的结果更工整
         shige.append(w)
     poem_sentences = poem.split('。')
     for s in poem_sentences:
-        if s != '' and len(s) > 10:
+        if s != '' and len(s) > 0:
             print(s + '。')
+    print("-"*20)
 
 
 def gen_poem(begin_word):
@@ -252,21 +253,15 @@ def gen_poem(begin_word):
 # losses = run_training()
 
 
-# run_training()  # 如果不是训练阶段 ，请注销这一行 。 网络训练时间很长。
+run_training()  # 如果不是训练阶段 ，请注销这一行 。 网络训练时间很长。
 
 
-# pretty_print_poem(gen_poem("日"))
-# pretty_print_poem(gen_poem("红"))
-pretty_print_poem(gen_poem("山"))
-# pretty_print_poem(gen_poem("夜"))
-# pretty_print_poem(gen_poem("湖"))
-# pretty_print_poem(gen_poem("君"))
-# Generate poems
 pretty_print_poem(gen_poem("日"))
-# pretty_print_poem(gen_poem("红"))
-# pretty_print_poem(gen_poem("山"))
-# pretty_print_poem(gen_poem("夜"))
-# pretty_print_poem(gen_poem("湖"))
-# pretty_print_poem(gen_poem("君"))
+pretty_print_poem(gen_poem("红"))
+pretty_print_poem(gen_poem("山"))
+pretty_print_poem(gen_poem("夜"))
+pretty_print_poem(gen_poem("湖"))
+pretty_print_poem(gen_poem("君"))
+
 
 

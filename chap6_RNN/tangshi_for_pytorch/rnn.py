@@ -87,4 +87,6 @@ class RNN_model(nn.Module):
            output = out
         # print(out)
         return output
-
+        
+        
+        
