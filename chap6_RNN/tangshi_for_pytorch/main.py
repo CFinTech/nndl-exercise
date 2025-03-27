@@ -235,7 +235,6 @@ def gen_poem(begin_word):
     rnn_model.load_state_dict(torch.load('./poem_generator_rnn', map_location=device))
 
     # 指定开始的字
-
     poem = begin_word
     word = begin_word
     while word != end_token:
@@ -252,6 +251,16 @@ def gen_poem(begin_word):
 
 # losses = run_training()
 
+
+# run_training()  # 如果不是训练阶段 ，请注销这一行 。 网络训练时间很长。
+
+
+# pretty_print_poem(gen_poem("日"))
+# pretty_print_poem(gen_poem("红"))
+pretty_print_poem(gen_poem("山"))
+# pretty_print_poem(gen_poem("夜"))
+# pretty_print_poem(gen_poem("湖"))
+# pretty_print_poem(gen_poem("君"))
 # Generate poems
 pretty_print_poem(gen_poem("日"))
 # pretty_print_poem(gen_poem("红"))
